@@ -1,9 +1,28 @@
 use common::{read_input, run_day};
 
 fn part1(input: &str) -> i64 {
-    // TODO: Implement part 1
-    let _lines: Vec<&str> = input.lines().collect();
-    0
+    let mut position: i64 = 50;
+    let mut count = 0;
+
+    for line in input.lines() {
+        let direction = &line[0..1];
+        let distance: i64 = line[1..].parse().unwrap();
+
+        match direction {
+            "L" => position -= distance,
+            "R" => position += distance,
+            _ => panic!("Unknown direction: {}", direction),
+        }
+
+        // Wrap around to 0-99 range
+        position = position.rem_euclid(100);
+
+        if position == 0 {
+            count += 1;
+        }
+    }
+
+    count
 }
 
 fn part2(input: &str) -> i64 {
@@ -26,7 +45,7 @@ mod tests {
     #[test]
     fn test_part1_example() {
         let input = read_example(1);
-        assert_eq!(part1(&input), 0); // TODO: Update expected value
+        assert_eq!(part1(&input), 3);
     }
 
     #[test]
@@ -38,7 +57,7 @@ mod tests {
     #[test]
     fn test_part1() {
         let input = read_input(1);
-        assert_eq!(part1(&input), 0); // TODO: Update expected value after solving
+        assert_eq!(part1(&input), 1105);
     }
 
     #[test]

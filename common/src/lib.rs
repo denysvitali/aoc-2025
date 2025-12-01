@@ -7,14 +7,30 @@ use std::time::{Duration, Instant};
 
 /// Read input file for a given day
 pub fn read_input(day: u8) -> String {
-    let path = format!("day{:02}/input/input.txt", day);
-    fs::read_to_string(&path).unwrap_or_else(|_| panic!("Failed to read input file: {}", path))
+    let paths = [
+        format!("day{:02}/input/input.txt", day),
+        "input/input.txt".to_string(),
+    ];
+    for path in &paths {
+        if let Ok(content) = fs::read_to_string(path) {
+            return content;
+        }
+    }
+    panic!("Failed to read input file for day {:02}", day)
 }
 
 /// Read example input file for a given day
 pub fn read_example(day: u8) -> String {
-    let path = format!("day{:02}/input/example.txt", day);
-    fs::read_to_string(&path).unwrap_or_else(|_| panic!("Failed to read example file: {}", path))
+    let paths = [
+        format!("day{:02}/input/example.txt", day),
+        "input/example.txt".to_string(),
+    ];
+    for path in &paths {
+        if let Ok(content) = fs::read_to_string(path) {
+            return content;
+        }
+    }
+    panic!("Failed to read example file for day {:02}", day)
 }
 
 /// Read input from a specific path
