@@ -1,0 +1,14 @@
+[workspace]
+resolver = "2"
+members = [
+    "common",
+    "day01",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+authors = ["AoC 2025"]
+
+[workspace.dependencies]
+common = { path = "common" }

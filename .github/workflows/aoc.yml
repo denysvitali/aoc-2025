@@ -1,0 +1,192 @@
+name: Advent of Code 2025
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    name: Test Solutions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-action@stable
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Run tests
+        run: cargo test --workspace --verbose
+
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-action@stable
+        with:
+          components: clippy
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Run clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+  format:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-action@stable
+        with:
+          components: rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+  run-solutions:
+    name: Run Solutions
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-action@stable
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Build release
+        run: cargo build --workspace --release
+
+      - name: Run all solutions
+        run: |
+          echo "# Advent of Code 2025 - Solutions" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Day | Part 1 | Part 2 | Time (Part 1) | Time (Part 2) | Total Time |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|--------|---------------|---------------|------------|" >> $GITHUB_STEP_SUMMARY
+
+          for day_dir in day*/; do
+            day=$(basename "$day_dir")
+            day_num=${day#day}
+            day_num=$((10#$day_num))  # Remove leading zeros
+
+            # Check if input file has content
+            if [ -s "${day_dir}input/input.txt" ]; then
+              echo "Running $day..."
+              output=$(cd "$day_dir" && ../target/release/$day 2>&1) || true
+
+              # Parse the output
+              part1=$(echo "$output" | grep "Part 1:" | sed 's/Part 1: \([^ ]*\).*/\1/')
+              part2=$(echo "$output" | grep "Part 2:" | sed 's/Part 2: \([^ ]*\).*/\1/')
+              time1=$(echo "$output" | grep "Part 1:" | sed 's/.*(\(.*\))/\1/')
+              time2=$(echo "$output" | grep "Part 2:" | sed 's/.*(\(.*\))/\1/')
+              total=$(echo "$output" | grep "Total time:" | sed 's/Total time: //')
+
+              echo "| $day_num | $part1 | $part2 | $time1 | $time2 | $total |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| $day_num | - | - | - | - | Not solved yet |" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+
+  benchmark:
+    name: Benchmark
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-action@stable
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Build release
+        run: cargo build --workspace --release
+
+      - name: Run benchmarks (10 iterations)
+        run: |
+          echo "# Performance Benchmarks" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Running each solution 10 times and showing average times:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Day | Avg Part 1 | Avg Part 2 | Avg Total |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|------------|------------|-----------|" >> $GITHUB_STEP_SUMMARY
+
+          for day_dir in day*/; do
+            day=$(basename "$day_dir")
+            day_num=${day#day}
+            day_num=$((10#$day_num))
+
+            if [ -s "${day_dir}input/input.txt" ]; then
+              echo "Benchmarking $day..."
+
+              total_p1=0
+              total_p2=0
+
+              for i in {1..10}; do
+                output=$(cd "$day_dir" && ../target/release/$day 2>&1) || true
+
+                # Extract times in microseconds for averaging
+                time1=$(echo "$output" | grep "Part 1:" | sed 's/.*(\(.*\))/\1/' | sed 's/µs//' | sed 's/ms/*1000/' | sed 's/s/*1000000/' | bc 2>/dev/null || echo "0")
+                time2=$(echo "$output" | grep "Part 2:" | sed 's/.*(\(.*\))/\1/' | sed 's/µs//' | sed 's/ms/*1000/' | sed 's/s/*1000000/' | bc 2>/dev/null || echo "0")
+
+                total_p1=$((total_p1 + ${time1:-0}))
+                total_p2=$((total_p2 + ${time2:-0}))
+              done
+
+              avg_p1=$((total_p1 / 10))
+              avg_p2=$((total_p2 / 10))
+              avg_total=$((avg_p1 + avg_p2))
+
+              echo "| $day_num | ${avg_p1}µs | ${avg_p2}µs | ${avg_total}µs |" >> $GITHUB_STEP_SUMMARY
+            fi
+          done

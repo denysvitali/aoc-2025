@@ -1,0 +1,49 @@
+use common::{read_input, run_day};
+
+fn part1(input: &str) -> i64 {
+    // TODO: Implement part 1
+    let _lines: Vec<&str> = input.lines().collect();
+    0
+}
+
+fn part2(input: &str) -> i64 {
+    // TODO: Implement part 2
+    let _lines: Vec<&str> = input.lines().collect();
+    0
+}
+
+fn main() {
+    let input = read_input({{DAY_NUM}});
+    let result = run_day({{DAY_NUM}}, &input, part1, part2);
+    result.print({{DAY_NUM}});
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use common::read_example;
+
+    #[test]
+    fn test_part1_example() {
+        let input = read_example({{DAY_NUM}});
+        assert_eq!(part1(&input), 0); // TODO: Update expected value
+    }
+
+    #[test]
+    fn test_part2_example() {
+        let input = read_example({{DAY_NUM}});
+        assert_eq!(part2(&input), 0); // TODO: Update expected value
+    }
+
+    #[test]
+    fn test_part1() {
+        let input = read_input({{DAY_NUM}});
+        assert_eq!(part1(&input), 0); // TODO: Update expected value after solving
+    }
+
+    #[test]
+    fn test_part2() {
+        let input = read_input({{DAY_NUM}});
+        assert_eq!(part2(&input), 0); // TODO: Update expected value after solving
+    }
+}
