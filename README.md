@@ -51,4 +51,4 @@ cargo test --workspace
 
 ## License
 
-This project is for educational and entertainment purposes as part of Advent of Code 2025.
+MIT License - see [LICENSE](LICENSE) for details.
