@@ -83,6 +83,16 @@ cargo clippy --workspace
 cargo fmt --workspace
 ```
 
+## Git Hooks
+
+This repository uses a pre-commit hook to ensure formatting. To enable it:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+The hook runs `cargo fmt --all -- --check` before each commit.
+
 ## Workflow
 
 1. Read the problem carefully
@@ -91,7 +101,8 @@ cargo fmt --workspace
 4. Update test with actual answer once solved
 5. Implement part 2, verify with example
 6. Update test with actual answer once solved
-7. Commit the solution
+7. Run `cargo fmt --all` before committing
+8. Commit the solution
 
 ## CI/CD
 

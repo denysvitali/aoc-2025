@@ -52,10 +52,7 @@ impl<T: Display> DayResult<T> {
         println!("=== Day {:02} ===", day);
         println!("Part 1: {} ({:?})", self.part1, self.part1_time);
         println!("Part 2: {} ({:?})", self.part2, self.part2_time);
-        println!(
-            "Total time: {:?}",
-            self.part1_time + self.part2_time
-        );
+        println!("Total time: {:?}", self.part1_time + self.part2_time);
     }
 }
 
