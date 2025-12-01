@@ -152,14 +152,12 @@ jobs:
       - name: Build release
         run: cargo build --workspace --release
 
-      - name: Run benchmarks (10 iterations)
+      - name: Run benchmarks
         run: |
           echo "# Performance Benchmarks" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Running each solution 10 times and showing average times:" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Day | Avg Part 1 | Avg Part 2 | Avg Total |" >> $GITHUB_STEP_SUMMARY
-          echo "|-----|------------|------------|-----------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Day | Part 1 | Part 2 | Total |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|--------|-------|" >> $GITHUB_STEP_SUMMARY
 
           for day_dir in day*/; do
             day=$(basename "$day_dir")
@@ -168,25 +166,12 @@ jobs:
 
             if [ -s "${day_dir}input/input.txt" ]; then
               echo "Benchmarking $day..."
+              output=$(cd "$day_dir" && ../target/release/$day 2>&1) || true
 
-              total_p1=0
-              total_p2=0
+              time1=$(echo "$output" | grep "Part 1:" | sed 's/.*(\(.*\))/\1/')
+              time2=$(echo "$output" | grep "Part 2:" | sed 's/.*(\(.*\))/\1/')
+              total=$(echo "$output" | grep "Total time:" | sed 's/Total time: //')
 
-              for i in {1..10}; do
-                output=$(cd "$day_dir" && ../target/release/$day 2>&1) || true
-
-                # Extract times in microseconds for averaging
-                time1=$(echo "$output" | grep "Part 1:" | sed 's/.*(\(.*\))/\1/' | sed 's/µs//' | sed 's/ms/*1000/' | sed 's/s/*1000000/' | bc 2>/dev/null || echo "0")
-                time2=$(echo "$output" | grep "Part 2:" | sed 's/.*(\(.*\))/\1/' | sed 's/µs//' | sed 's/ms/*1000/' | sed 's/s/*1000000/' | bc 2>/dev/null || echo "0")
-
-                total_p1=$((total_p1 + ${time1:-0}))
-                total_p2=$((total_p2 + ${time2:-0}))
-              done
-
-              avg_p1=$((total_p1 / 10))
-              avg_p2=$((total_p2 / 10))
-              avg_total=$((avg_p1 + avg_p2))
-
-              echo "| $day_num | ${avg_p1}µs | ${avg_p2}µs | ${avg_total}µs |" >> $GITHUB_STEP_SUMMARY
+              echo "| $day_num | $time1 | $time2 | $total |" >> $GITHUB_STEP_SUMMARY
             fi
           done
