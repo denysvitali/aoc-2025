@@ -85,7 +85,7 @@ mod tests {
     #[test]
     fn test_part1() {
         let input = read_input(2);
-        assert_eq!(part1(&input), 0); // TODO: Update expected value after solving
+        assert_eq!(part1(&input), 29818212493);
     }
 
     #[test]
