@@ -47,9 +47,9 @@ fn part2(input: &str) -> i64 {
                 // Find the maximum digit in range [start, end]
                 let mut max_digit = 0;
                 let mut max_pos = start;
-                for pos in start..=end {
-                    if digits[pos] > max_digit {
-                        max_digit = digits[pos];
+                for (pos, &digit) in digits.iter().enumerate().take(end + 1).skip(start) {
+                    if digit > max_digit {
+                        max_digit = digit;
                         max_pos = pos;
                     }
                 }
