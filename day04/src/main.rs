@@ -128,12 +128,12 @@ mod tests {
     #[test]
     fn test_part1() {
         let input = read_input(4);
-        assert_eq!(part1(&input), 0); // TODO: Update expected value after solving
+        assert_eq!(part1(&input), 1409);
     }
 
     #[test]
     fn test_part2() {
         let input = read_input(4);
-        assert_eq!(part2(&input), 0); // TODO: Update expected value after solving
+        assert_eq!(part2(&input), 8366);
     }
 }
