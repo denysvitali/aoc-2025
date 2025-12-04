@@ -22,10 +22,13 @@ fn part1(input: &str) -> i64 {
                     }
                     let nr = r as i64 + dr;
                     let nc = c as i64 + dc;
-                    if nr >= 0 && nr < rows as i64 && nc >= 0 && nc < cols as i64 {
-                        if grid[nr as usize][nc as usize] == '@' {
-                            adjacent += 1;
-                        }
+                    if nr >= 0
+                        && nr < rows as i64
+                        && nc >= 0
+                        && nc < cols as i64
+                        && grid[nr as usize][nc as usize] == '@'
+                    {
+                        adjacent += 1;
                     }
                 }
             }
@@ -40,10 +43,63 @@ fn part1(input: &str) -> i64 {
     count
 }
 
+fn count_adjacent(grid: &[Vec<char>], r: usize, c: usize) -> i32 {
+    let rows = grid.len();
+    let cols = grid[0].len();
+    let mut adjacent = 0;
+
+    for dr in -1..=1 {
+        for dc in -1..=1 {
+            if dr == 0 && dc == 0 {
+                continue;
+            }
+            let nr = r as i64 + dr;
+            let nc = c as i64 + dc;
+            if nr >= 0
+                && nr < rows as i64
+                && nc >= 0
+                && nc < cols as i64
+                && grid[nr as usize][nc as usize] == '@'
+            {
+                adjacent += 1;
+            }
+        }
+    }
+    adjacent
+}
+
 fn part2(input: &str) -> i64 {
-    // TODO: Implement part 2
-    let _lines: Vec<&str> = input.lines().collect();
-    0
+    let mut grid: Vec<Vec<char>> = input.lines().map(|line| line.chars().collect()).collect();
+    let rows = grid.len();
+    let cols = if rows > 0 { grid[0].len() } else { 0 };
+
+    let mut total_removed = 0;
+
+    loop {
+        // Find all accessible rolls (fewer than 4 adjacent)
+        let mut to_remove = Vec::new();
+
+        for r in 0..rows {
+            for c in 0..cols {
+                if grid[r][c] == '@' && count_adjacent(&grid, r, c) < 4 {
+                    to_remove.push((r, c));
+                }
+            }
+        }
+
+        if to_remove.is_empty() {
+            break;
+        }
+
+        // Remove all accessible rolls
+        for (r, c) in &to_remove {
+            grid[*r][*c] = '.';
+        }
+
+        total_removed += to_remove.len() as i64;
+    }
+
+    total_removed
 }
 
 fn main() {
@@ -66,7 +122,7 @@ mod tests {
     #[test]
     fn test_part2_example() {
         let input = read_example(4);
-        assert_eq!(part2(&input), 0); // TODO: Update expected value
+        assert_eq!(part2(&input), 43);
     }
 
     #[test]
