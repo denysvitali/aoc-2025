@@ -33,10 +33,37 @@ fn part1(input: &str) -> i64 {
         .count() as i64
 }
 
+fn merge_ranges(ranges: &[RangeInclusive<i64>]) -> Vec<RangeInclusive<i64>> {
+    if ranges.is_empty() {
+        return vec![];
+    }
+
+    let mut sorted: Vec<_> = ranges.to_vec();
+    sorted.sort_by_key(|r| *r.start());
+
+    let mut merged: Vec<RangeInclusive<i64>> = vec![sorted[0].clone()];
+
+    for range in sorted.into_iter().skip(1) {
+        let last = merged.last_mut().unwrap();
+        // Check if ranges overlap or are adjacent
+        if *range.start() <= *last.end() + 1 {
+            // Extend the last range if needed
+            if *range.end() > *last.end() {
+                *last = *last.start()..=*range.end();
+            }
+        } else {
+            merged.push(range);
+        }
+    }
+
+    merged
+}
+
 fn part2(input: &str) -> i64 {
-    // TODO: Implement part 2
-    let _lines: Vec<&str> = input.lines().collect();
-    0
+    let (ranges, _) = parse_input(input);
+    let merged = merge_ranges(&ranges);
+
+    merged.iter().map(|r| r.end() - r.start() + 1).sum()
 }
 
 fn main() {
@@ -59,18 +86,18 @@ mod tests {
     #[test]
     fn test_part2_example() {
         let input = read_example(5);
-        assert_eq!(part2(&input), 0); // TODO: Update expected value
+        assert_eq!(part2(&input), 14);
     }
 
     #[test]
     fn test_part1() {
         let input = read_input(5);
-        assert_eq!(part1(&input), 0); // TODO: Update expected value after solving
+        assert_eq!(part1(&input), 509);
     }
 
     #[test]
     fn test_part2() {
         let input = read_input(5);
-        assert_eq!(part2(&input), 0); // TODO: Update expected value after solving
+        assert_eq!(part2(&input), 336790092076620);
     }
 }
