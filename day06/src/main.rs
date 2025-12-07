@@ -59,10 +59,10 @@ fn part1(input: &str) -> i64 {
                 .take(end_col - start_col)
                 .collect();
             let trimmed = segment.trim();
-            if !trimmed.is_empty() {
-                if let Ok(n) = trimmed.parse::<i64>() {
-                    numbers.push(n);
-                }
+            if !trimmed.is_empty()
+                && let Ok(n) = trimmed.parse::<i64>()
+            {
+                numbers.push(n);
             }
         }
 
