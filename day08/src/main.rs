@@ -108,25 +108,15 @@ fn solve(input: &str, num_connections: usize) -> i64 {
 
     // Use Union-Find to connect pairs
     let mut uf = UnionFind::new(n);
-    let mut connections_made = 0;
 
-    for (_, i, j) in pairs {
-        if connections_made >= num_connections {
-            break;
-        }
+    for (_, i, j) in pairs.into_iter().take(num_connections) {
         // Try to connect (even if already connected, count it)
         uf.union(i, j);
-        connections_made += 1;
     }
 
     // Get circuit sizes and multiply top 3
     let sizes = uf.get_circuit_sizes();
-    let mut result: i64 = 1;
-    for i in 0..3.min(sizes.len()) {
-        result *= sizes[i] as i64;
-    }
-
-    result
+    sizes.iter().take(3).map(|&s| s as i64).product()
 }
 
 fn part1(input: &str) -> i64 {
