@@ -134,8 +134,35 @@ fn part1(input: &str) -> i64 {
 }
 
 fn part2(input: &str) -> i64 {
-    // TODO: Implement part 2
-    let _lines: Vec<&str> = input.lines().collect();
+    let points = parse_input(input);
+    let n = points.len();
+
+    // Generate all pairs with their distances
+    let mut pairs: Vec<(i64, usize, usize)> = Vec::new();
+    for i in 0..n {
+        for j in (i + 1)..n {
+            let dist = points[i].distance_squared(&points[j]);
+            pairs.push((dist, i, j));
+        }
+    }
+
+    // Sort pairs by distance
+    pairs.sort_by_key(|&(dist, _, _)| dist);
+
+    // Use Union-Find to connect pairs until all in one circuit
+    let mut uf = UnionFind::new(n);
+    let mut num_circuits = n;
+
+    for (_, i, j) in pairs {
+        if uf.union(i, j) {
+            num_circuits -= 1;
+            if num_circuits == 1 {
+                // This was the last connection needed
+                return points[i].x * points[j].x;
+            }
+        }
+    }
+
     0
 }
 
@@ -160,18 +187,19 @@ mod tests {
     #[test]
     fn test_part2_example() {
         let input = read_example(8);
-        assert_eq!(part2(&input), 0); // TODO: Update expected value
+        // Last connection: 216,146,977 and 117,168,530 -> 216 * 117 = 25272
+        assert_eq!(part2(&input), 25272);
     }
 
     #[test]
     fn test_part1() {
         let input = read_input(8);
-        assert_eq!(part1(&input), 0); // TODO: Update expected value after solving
+        assert_eq!(part1(&input), 32103);
     }
 
     #[test]
     fn test_part2() {
         let input = read_input(8);
-        assert_eq!(part2(&input), 0); // TODO: Update expected value after solving
+        assert_eq!(part2(&input), 8133642976);
     }
 }
