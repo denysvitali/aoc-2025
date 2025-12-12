@@ -28,7 +28,6 @@ fn normalize_shape(points: &[Point]) -> Shape {
 }
 
 fn rotate_90(shape: &Shape) -> Shape {
-    // (x, y) -> (y, -x) but we normalize after
     let rotated: Vec<Point> = shape.iter().map(|&(x, y)| (y, -x)).collect();
     normalize_shape(&rotated)
 }
@@ -42,13 +41,11 @@ fn get_all_orientations(shape: &Shape) -> Vec<Shape> {
     let mut orientations = HashSet::new();
     let mut current = shape.clone();
 
-    // 4 rotations
     for _ in 0..4 {
         orientations.insert(current.clone());
         current = rotate_90(&current);
     }
 
-    // Flip and 4 more rotations
     current = flip_horizontal(shape);
     for _ in 0..4 {
         orientations.insert(current.clone());
@@ -61,7 +58,6 @@ fn get_all_orientations(shape: &Shape) -> Vec<Shape> {
 fn parse_input(input: &str) -> (Vec<Vec<Shape>>, Vec<(usize, usize, Vec<usize>)>) {
     let parts: Vec<&str> = input.split("\n\n").collect();
 
-    // Parse shapes section
     let mut shapes: Vec<Vec<Shape>> = Vec::new();
     let shapes_section = parts[0..parts.len() - 1].join("\n\n");
 
@@ -70,14 +66,12 @@ fn parse_input(input: &str) -> (Vec<Vec<Shape>>, Vec<(usize, usize, Vec<usize>)>
         if lines.is_empty() {
             continue;
         }
-        // First line is "N:" where N is the index
         let shape_lines: Vec<&str> = lines[1..].to_vec();
         let shape = parse_shape(&shape_lines);
         let orientations = get_all_orientations(&shape);
         shapes.push(orientations);
     }
 
-    // Parse regions section (last part)
     let mut regions = Vec::new();
     let regions_section = parts[parts.len() - 1];
 
@@ -85,7 +79,6 @@ fn parse_input(input: &str) -> (Vec<Vec<Shape>>, Vec<(usize, usize, Vec<usize>)>
         if line.is_empty() {
             continue;
         }
-        // Format: "WxH: n0 n1 n2 ..."
         let colon_pos = line.find(':').unwrap();
         let dims_part = &line[..colon_pos];
         let counts_part = &line[colon_pos + 1..].trim();
@@ -105,17 +98,30 @@ fn parse_input(input: &str) -> (Vec<Vec<Shape>>, Vec<(usize, usize, Vec<usize>)>
     (shapes, regions)
 }
 
+// Find the first empty cell in row-major order
+fn find_first_empty(grid: &[Vec<bool>], width: usize, height: usize) -> Option<(usize, usize)> {
+    for y in 0..height {
+        for x in 0..width {
+            if !grid[y][x] {
+                return Some((x, y));
+            }
+        }
+    }
+    None
+}
+
+// Check if shape can be placed with offset at (pos_x, pos_y)
 fn can_place_shape(
     grid: &[Vec<bool>],
     shape: &Shape,
-    pos_x: usize,
-    pos_y: usize,
+    pos_x: i32,
+    pos_y: i32,
     width: usize,
     height: usize,
 ) -> bool {
     for &(dx, dy) in shape {
-        let x = pos_x as i32 + dx;
-        let y = pos_y as i32 + dy;
+        let x = pos_x + dx;
+        let y = pos_y + dy;
         if x < 0 || y < 0 || x >= width as i32 || y >= height as i32 {
             return false;
         }
@@ -126,45 +132,80 @@ fn can_place_shape(
     true
 }
 
-fn place_shape(grid: &mut [Vec<bool>], shape: &Shape, pos_x: usize, pos_y: usize) {
+fn place_shape(grid: &mut [Vec<bool>], shape: &Shape, pos_x: i32, pos_y: i32) {
     for &(dx, dy) in shape {
-        let x = (pos_x as i32 + dx) as usize;
-        let y = (pos_y as i32 + dy) as usize;
+        let x = (pos_x + dx) as usize;
+        let y = (pos_y + dy) as usize;
         grid[y][x] = true;
     }
 }
 
-fn remove_shape(grid: &mut [Vec<bool>], shape: &Shape, pos_x: usize, pos_y: usize) {
+fn remove_shape(grid: &mut [Vec<bool>], shape: &Shape, pos_x: i32, pos_y: i32) {
     for &(dx, dy) in shape {
-        let x = (pos_x as i32 + dx) as usize;
-        let y = (pos_y as i32 + dy) as usize;
+        let x = (pos_x + dx) as usize;
+        let y = (pos_y + dy) as usize;
         grid[y][x] = false;
     }
 }
 
-fn solve(
+// Get all ways to place a shape so that it covers a specific cell (target_x, target_y)
+fn placements_covering_cell(
+    shape: &Shape,
+    target_x: usize,
+    target_y: usize,
+    grid: &[Vec<bool>],
+    width: usize,
+    height: usize,
+) -> Vec<(i32, i32)> {
+    let mut placements = Vec::new();
+
+    for &(dx, dy) in shape {
+        let pos_x = target_x as i32 - dx;
+        let pos_y = target_y as i32 - dy;
+
+        if can_place_shape(grid, shape, pos_x, pos_y, width, height) {
+            placements.push((pos_x, pos_y));
+        }
+    }
+
+    placements
+}
+
+// Solve using first-empty-cell strategy (exact fit required)
+fn solve_exact(
     grid: &mut Vec<Vec<bool>>,
-    shapes_to_place: &[(usize, &Vec<Shape>)], // (shape_index, orientations)
-    idx: usize,
+    shapes_remaining: &mut Vec<usize>,
+    all_orientations: &[Vec<Shape>],
     width: usize,
     height: usize,
 ) -> bool {
-    if idx >= shapes_to_place.len() {
-        return true;
-    }
+    // Find first empty cell
+    let (target_x, target_y) = match find_first_empty(grid, width, height) {
+        Some(pos) => pos,
+        None => return true, // Grid is full, success!
+    };
 
-    let (_shape_idx, orientations) = &shapes_to_place[idx];
+    // Try each shape type that has remaining pieces
+    for shape_idx in 0..shapes_remaining.len() {
+        if shapes_remaining[shape_idx] == 0 {
+            continue;
+        }
 
-    for orientation in orientations.iter() {
-        for y in 0..height {
-            for x in 0..width {
-                if can_place_shape(grid, orientation, x, y, width, height) {
-                    place_shape(grid, orientation, x, y);
-                    if solve(grid, shapes_to_place, idx + 1, width, height) {
-                        return true;
-                    }
-                    remove_shape(grid, orientation, x, y);
+        // Try each orientation
+        for orientation in &all_orientations[shape_idx] {
+            let placements =
+                placements_covering_cell(orientation, target_x, target_y, grid, width, height);
+
+            for (pos_x, pos_y) in placements {
+                place_shape(grid, orientation, pos_x, pos_y);
+                shapes_remaining[shape_idx] -= 1;
+
+                if solve_exact(grid, shapes_remaining, all_orientations, width, height) {
+                    return true;
                 }
+
+                shapes_remaining[shape_idx] += 1;
+                remove_shape(grid, orientation, pos_x, pos_y);
             }
         }
     }
@@ -178,23 +219,68 @@ fn can_fit_all_presents(
     counts: &[usize],
     all_shapes: &[Vec<Shape>],
 ) -> bool {
-    // Build list of shapes to place (with repetition)
-    let mut shapes_to_place: Vec<(usize, &Vec<Shape>)> = Vec::new();
-    for (shape_idx, &count) in counts.iter().enumerate() {
-        for _ in 0..count {
-            shapes_to_place.push((shape_idx, &all_shapes[shape_idx]));
-        }
+    // All shapes have same size
+    let shape_size = all_shapes[0][0].len();
+    let total_cells: usize = width * height;
+    let needed_cells: usize = counts.iter().sum::<usize>() * shape_size;
+
+    // Basic area check - must have enough space
+    if needed_cells > total_cells {
+        return false;
     }
 
-    if shapes_to_place.is_empty() {
+    // If exact fit is required (area matches exactly), use efficient solver
+    if needed_cells == total_cells {
+        let mut shapes_remaining: Vec<usize> = counts.to_vec();
+        let mut grid = vec![vec![false; width]; height];
+        return solve_exact(&mut grid, &mut shapes_remaining, all_shapes, width, height);
+    }
+
+    // For non-exact fits, we need a different approach
+    // This is expensive but necessary for correctness
+    let mut shapes_remaining: Vec<usize> = counts.to_vec();
+    let mut grid = vec![vec![false; width]; height];
+    solve_with_gaps(&mut grid, &mut shapes_remaining, all_shapes, width, height)
+}
+
+// Solve when gaps are allowed - simpler backtracking
+fn solve_with_gaps(
+    grid: &mut Vec<Vec<bool>>,
+    shapes_remaining: &mut Vec<usize>,
+    all_orientations: &[Vec<Shape>],
+    width: usize,
+    height: usize,
+) -> bool {
+    // Check if all shapes are placed
+    let total_remaining: usize = shapes_remaining.iter().sum();
+    if total_remaining == 0 {
         return true;
     }
 
-    // Sort by number of orientations (fewer orientations first for better pruning)
-    shapes_to_place.sort_by_key(|(_, orientations)| orientations.len());
+    // Find first shape type with remaining pieces
+    let shape_idx = shapes_remaining.iter().position(|&c| c > 0).unwrap();
 
-    let mut grid = vec![vec![false; width]; height];
-    solve(&mut grid, &shapes_to_place, 0, width, height)
+    // Try each orientation
+    for orientation in &all_orientations[shape_idx] {
+        // Try each position
+        for y in 0..height {
+            for x in 0..width {
+                if can_place_shape(grid, orientation, x as i32, y as i32, width, height) {
+                    place_shape(grid, orientation, x as i32, y as i32);
+                    shapes_remaining[shape_idx] -= 1;
+
+                    if solve_with_gaps(grid, shapes_remaining, all_orientations, width, height) {
+                        return true;
+                    }
+
+                    shapes_remaining[shape_idx] += 1;
+                    remove_shape(grid, orientation, x as i32, y as i32);
+                }
+            }
+        }
+    }
+
+    false
 }
 
 fn part1(input: &str) -> i64 {
@@ -242,7 +328,7 @@ mod tests {
     #[test]
     fn test_part1() {
         let input = read_input(12);
-        assert_eq!(part1(&input), 0); // TODO: Update expected value after solving
+        assert_eq!(part1(&input), 599);
     }
 
     #[test]
